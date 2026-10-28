@@ -1,0 +1,174 @@
+---
+---
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="GitHubのコントリビューショングラフを、自分好みにカスタマイズ。" />
+    <title>Contribution Graph Studio</title>
+  </head>
+  <body>
+    <main>
+      <div class="layout">
+        <section class="preview" aria-label="グラフプレビュー"><div class="preview-top"><div><span class="number">LIVE PREVIEW</span></div><span class="preview-tag">CONTRIBUTION GRAPH</span></div><div class="graph-card"><div class="graph-header"><div><strong id="total">あなたのコントリビューション</strong><p id="graph-subtitle">ユーザー名を入力して、グラフを表示しましょう。</p></div></div><div class="graph-scroll"><div id="graph" class="graph hide-counts" aria-label="コントリビューショングラフ"></div></div><div class="graph-footer"><div class="legend"><span>少ない</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>多い</span></div></div></div><div id="message" class="message" role="status">下のフォームに入力してみましょう。</div></section>
+        <aside class="sidebar" aria-label="グラフの設定">
+        <section class="controls" aria-label="グラフ設定">
+          <div class="section-heading"><div><span class="number">01 / SETUP</span><h2>グラフをつくる</h2></div><span class="heading-icon">↗</span></div>
+          <form id="form">
+            <label for="username">GitHub ユーザー名 <span>USERNAME</span></label><input id="username" name="username" placeholder="例: octocat" required autocomplete="username" />
+            <label for="token">アクセストークン <span>PERSONAL ACCESS TOKEN</span></label><input id="token" name="token" type="password" placeholder="github_pat_…" required autocomplete="off" />
+            <p class="hint">GitHub GraphQL APIの認証に使用します。トークンは保存されません。 <button type="button" id="open-token-info" class="text-button" aria-haspopup="dialog" aria-controls="token-info">ⓘ トークンの説明を開く</button></p>
+            <label for="year">表示期間 <span>PERIOD</span></label><select id="year"><option value="rolling">現在から過去1年</option></select>
+            <button class="submit" type="submit"><span>グラフを取得する</span><span>↗</span></button>
+          </form>
+          <details class="query-details">
+            <summary>送信したGraphQLクエリを表示</summary>
+            <p>直近のリクエストに使用したクエリと変数です。アクセストークンは表示されません。</p>
+            <pre id="query-display">まだリクエストは送信されていません。</pre>
+          </details>
+          <details class="query-details">
+            <summary>GitHubからの取得結果を表示</summary>
+            <p>直近のリクエストに対するGitHub APIの応答です。</p>
+            <pre id="response-display">まだ結果はありません。</pre>
+          </details>
+        </section>
+        <section class="controls" aria-label="見た目の調整">
+          <div class="section-heading customize"><div><span class="number">02 / CUSTOMIZE</span><h2>見た目を調整</h2></div><button type="button" id="reset" class="reset">リセット ↺</button></div>
+          <div class="control-row"><div><span class="control-label">コントリビューション数</span><p>SHOW COUNTS</p></div><button type="button" id="toggle-counts" class="toggle-counts" aria-pressed="false">非表示</button></div>
+          <div class="control-row"><div><span class="control-label">絵文字</span><p>SHOW EMOJI</p></div><button type="button" id="toggle-emoji" class="toggle-counts" aria-pressed="false">非表示</button></div>
+          <div class="control-row"><div><label for="color">テーマカラー</label><p>COLOR</p></div><div class="color-control"><input type="color" id="color" value="#216e39" aria-label="テーマカラー" /><span id="color-value">#216E39</span></div></div>
+          <div class="control-row range-row"><div><label for="size">マスの大きさ</label><p>SIZE</p></div><div class="range-control"><input type="range" id="size" min="8" max="18" value="11" /><output id="size-value">11 px</output></div></div>
+          <div class="control-row range-row"><div><label for="gap">マスの間隔</label><p>SPACING</p></div><div class="range-control"><input type="range" id="gap" min="1" max="7" value="3" /><output id="gap-value">3 px</output></div></div>
+        </section>
+        </aside>
+      </div>
+    </main><footer><span>✳ &nbsp; CONTRIBUTION STUDIO</span></footer>
+    <dialog id="token-info" aria-labelledby="token-info-title">
+      <div class="modal-header"><h2 id="token-info-title">アクセストークンについて</h2><button type="button" id="close-token-info" class="modal-close" aria-label="閉じる">×</button></div>
+      <h3>何に使う？</h3>
+      <p>GitHub GraphQL APIにアクセスし、指定したユーザーのコントリビューションを取得するための認証に使います。</p>
+      <h3>どう使う？</h3>
+      <p>GitHubでFine-grained personal access tokenを作成し、画面のアクセストークン欄に入力してください。公開情報の取得には公開リソースへの読み取りアクセスを使えます。必要な権限だけを選び、有効期限を設定してください。</p>
+      <h3>セキュリティ</h3>
+      <p>トークンはブラウザーからGitHubに直接送信し、このアプリには保存しません。パスワードと同様に扱い、他人に共有しないでください。漏えいが疑われる場合はGitHubの設定で無効化してください。</p>
+      <a class="token-link" href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener noreferrer">GitHubでトークンを作成 ↗</a>
+    </dialog>
+    <script>
+      const form = document.querySelector('#form') as HTMLFormElement;
+      const year = document.querySelector('#year') as HTMLSelectElement;
+      const color = document.querySelector('#color') as HTMLInputElement;
+      const size = document.querySelector('#size') as HTMLInputElement;
+      const gap = document.querySelector('#gap') as HTMLInputElement;
+      const graph = document.querySelector('#graph') as HTMLElement;
+      const toggleCounts = document.querySelector('#toggle-counts') as HTMLButtonElement;
+      const toggleEmoji = document.querySelector('#toggle-emoji') as HTMLButtonElement;
+      const message = document.querySelector('#message') as HTMLElement;
+      const tokenInfo = document.querySelector('#token-info') as HTMLDialogElement;
+      document.querySelector('#open-token-info')!.addEventListener('click', () => tokenInfo.showModal());
+      document.querySelector('#close-token-info')!.addEventListener('click', () => tokenInfo.close());
+      const currentYear = new Date().getFullYear();
+      const query = `query($login: String!, $from: DateTime!, $to: DateTime!) {
+  user(login: $login) {
+    login
+    contributionsCollection(from: $from, to: $to) {
+      contributionCalendar {
+        totalContributions
+        weeks { contributionDays { date contributionCount contributionLevel } }
+      }
+    }
+  }
+}`;
+      for (let y = currentYear; y >= 2008; y--) year.add(new Option(String(y), String(y)));
+      type Day = { date: string; contributionCount: number; contributionLevel: string };
+      type Week = { contributionDays: Day[] };
+      let weeks: Week[] = [];
+      const levels: Record<string, number> = { NONE: 0, FIRST_QUARTILE: 1, SECOND_QUARTILE: 2, THIRD_QUARTILE: 3, FOURTH_QUARTILE: 4 };
+      function applyStyle() {
+        document.documentElement.style.setProperty('--accent', color.value);
+        const githubColors = ['#9be9a8', '#40c463', '#30a14e'];
+        githubColors.forEach((githubColor, index) => {
+          const value = color.value.toLowerCase() === '#216e39' ? githubColor : `color-mix(in srgb, ${color.value} ${(index + 1) * 25}%, white)`;
+          document.documentElement.style.setProperty(`--level-${index + 1}`, value);
+        });
+        document.documentElement.style.setProperty('--cell', size.value + 'px');
+        document.documentElement.style.setProperty('--gap', gap.value + 'px');
+        document.querySelector('#color-value')!.textContent = color.value.toUpperCase();
+        document.querySelector('#size-value')!.textContent = size.value + ' px';
+        document.querySelector('#gap-value')!.textContent = gap.value + ' px';
+      }
+      function render() {
+        graph.replaceChildren();
+        const months = document.createElement('div'); months.className = 'months';
+        const grid = document.createElement('div'); grid.className = 'grid';
+        const weekdays = document.createElement('div'); weekdays.className = 'weekdays'; weekdays.innerHTML = '<span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>';
+        grid.append(weekdays);
+        let lastMonth = -1;
+        weeks.forEach((week) => {
+          const label = document.createElement('span');
+          const first = week.contributionDays[0];
+          if (first) { const m = Number(first.date.slice(5, 7)); if (m !== lastMonth) { label.textContent = new Date(2000, m - 1).toLocaleString('en', {month:'short'}); lastMonth = m; } }
+          months.append(label);
+          const column = document.createElement('div'); column.className = 'week';
+          if (first) { const weekday = new Date(first.date + 'T00:00:00Z').getUTCDay(); for (let i = 0; i < weekday; i++) { const blank = document.createElement('span'); blank.className = 'blank'; column.append(blank); } }
+          week.contributionDays.forEach(day => { const cell = document.createElement('span'); cell.className = 'cell'; const level = levels[day.contributionLevel] ?? 0; cell.dataset.level = String(level); const count = document.createElement('span'); count.className = 'cell-count'; count.textContent = day.contributionCount > 0 ? String(day.contributionCount) : ''; cell.style.setProperty('--count-scale', String(Math.min(0.65, 1.4 / (count.textContent.length || 1)))); const emoji = document.createElement('span'); emoji.className = 'cell-emoji'; emoji.setAttribute('aria-hidden', 'true'); emoji.textContent = day.contributionCount > 0 ? (['', '🌱', '🌿', '🌳', '🌲'][level] || '🌱') : ''; cell.append(count, emoji); cell.title = `${day.date}: ${day.contributionCount} contributions`; cell.setAttribute('aria-label', cell.title); column.append(cell); });
+          grid.append(column);
+        });
+        graph.append(months, grid);
+      }
+      function sample() {
+        const today = new Date(); const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())); const start = new Date(end); start.setUTCFullYear(start.getUTCFullYear() - 1); let week: Week = { contributionDays: [] };
+        for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) { if (d.getUTCDay() === 0 && week.contributionDays.length) { weeks.push(week); week = { contributionDays: [] }; } week.contributionDays.push({date:d.toISOString().slice(0,10), contributionCount:0, contributionLevel:'NONE'}); } if (week.contributionDays.length) weeks.push(week); render();
+      }
+      toggleCounts.addEventListener('click', () => {
+        const visible = toggleCounts.getAttribute('aria-pressed') !== 'true';
+        toggleCounts.setAttribute('aria-pressed', String(visible));
+        toggleCounts.textContent = visible ? '表示中' : '非表示';
+        graph.classList.toggle('hide-counts', !visible);
+        if (visible) { toggleEmoji.setAttribute('aria-pressed', 'false'); toggleEmoji.textContent = '非表示'; graph.classList.remove('show-emoji'); }
+      });
+      toggleEmoji.addEventListener('click', () => {
+        const visible = toggleEmoji.getAttribute('aria-pressed') !== 'true';
+        toggleEmoji.setAttribute('aria-pressed', String(visible));
+        toggleEmoji.textContent = visible ? '表示中' : '非表示';
+        graph.classList.toggle('show-emoji', visible);
+        if (visible) { toggleCounts.setAttribute('aria-pressed', 'false'); toggleCounts.textContent = '非表示'; graph.classList.add('hide-counts'); size.value = '18'; applyStyle(); }
+      });
+      [color, size, gap].forEach(input => input.addEventListener('input', applyStyle));
+      document.querySelector('#reset')!.addEventListener('click', () => { color.value = '#216e39'; size.value = '11'; gap.value = '3'; applyStyle(); });
+      form.addEventListener('submit', async event => {
+        event.preventDefault(); const button = form.querySelector('button')!; const username = (document.querySelector('#username') as HTMLInputElement).value.trim(); const token = (document.querySelector('#token') as HTMLInputElement).value.trim();
+        if (!username || !token) { message.textContent = 'ユーザー名とアクセストークンを入力してください。'; return; }
+        button.disabled = true; message.textContent = 'GitHubからデータを取得しています…';
+        const end = new Date();
+        const start = new Date(end);
+        start.setUTCFullYear(start.getUTCFullYear() - 1);
+        const rolling = year.value === 'rolling';
+        const variables = { login: username, from: rolling ? start.toISOString() : `${year.value}-01-01T00:00:00Z`, to: rolling ? end.toISOString() : `${year.value}-12-31T23:59:59Z` };
+        document.querySelector('#query-display')!.textContent = `${query}\n\n変数:\n${JSON.stringify(variables, null, 2)}`;
+        document.querySelector('#response-display')!.textContent = '取得中…';
+        try {
+          const response = await fetch('https://api.github.com/graphql', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':`Bearer ${token}`}, body:JSON.stringify({ query, variables }) });
+          const data = await response.json(); document.querySelector('#response-display')!.textContent = JSON.stringify(data, null, 2); if (!response.ok || data.errors) throw new Error(data.errors?.[0]?.message || `GitHub API error (${response.status})`); if (!data.data?.user) throw new Error('ユーザーが見つかりません。ユーザー名を確認してください。');
+          const calendar = data.data.user.contributionsCollection.contributionCalendar; weeks = calendar.weeks; render(); document.querySelector('#total')!.textContent = `${calendar.totalContributions.toLocaleString()} contributions ${rolling ? 'in the last year' : `in ${variables.from.slice(0, 4)}`}`;
+          const profile = document.createElement('a'); profile.href = `https://github.com/${encodeURIComponent(data.data.user.login)}`; profile.target = '_blank'; profile.rel = 'noopener noreferrer'; profile.textContent = `@${data.data.user.login}`;
+          document.querySelector('#graph-subtitle')!.replaceChildren(profile, ' のコントリビューション'); message.textContent = '取得しました。色やサイズを調整してみましょう。';
+        } catch (error) { const detail = error instanceof Error ? error.message : '通信エラー'; message.textContent = `取得できませんでした：${detail}`; if (document.querySelector('#response-display')!.textContent === '取得中…') document.querySelector('#response-display')!.textContent = `応答を取得できませんでした：${detail}`; } finally { button.disabled = false; }
+      });
+      applyStyle(); sample();
+    </script>
+  </body>
+</html>
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
+  :root{--accent:#216e39;--cell:11px;--gap:3px;--ink:#252b24;--muted:#858b80;--line:#e6e8df;--paper:#f7f8f3}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Sans','Noto Sans JP',sans-serif;font-size:14px}.topbar{height:76px;border-bottom:1px solid #e2e5da;display:flex;align-items:center;justify-content:space-between;padding:0 6.2%;background:#fafbf7}.brand{display:flex;align-items:center;gap:11px;color:#29362b;text-decoration:none;font-size:11px;font-weight:700;letter-spacing:.11em}.brand b{color:#788d70}.brand-icon{font-size:27px;color:#61815d}.top-note,.number,.eyebrow,.preview-tag,.preview-bottom,footer{font-size:10px;font-weight:700;letter-spacing:.14em}.top-note{color:#9da69a}.status-dot{display:inline-block;width:6px;height:6px;background:#8aa780;border-radius:50%;margin-right:8px}main{width:100%;max-width:1400px;margin:auto;padding:1rem}.intro{display:flex;justify-content:space-between;align-items:end;margin-bottom:48px}.eyebrow{color:#78916e;margin-bottom:20px}.eyebrow span{display:inline-block;width:28px;height:1px;background:#78916e;vertical-align:middle;margin-right:10px}h1{font-size:clamp(32px,3vw,46px);letter-spacing:.03em;line-height:1.48;margin:0;font-weight:600}h1 em{font-style:normal;color:#78916e}.intro p{color:#8b9188;line-height:1.9;margin:16px 0 0;font-size:13px}.intro-mark{display:flex;align-items:center;gap:10px;color:#b3bfae}.intro-mark span{font-size:48px}.intro-mark small{font-size:9px;letter-spacing:.12em;line-height:1.5}.layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:22px;align-items:start}.sidebar{display:grid;gap:22px;min-width:0;grid-column:1;grid-row:1}.preview{width:100%;grid-column:2;grid-row:1}.controls,.preview{background:#fff;border:1px solid #e8ebe3;border-radius:5px}.controls{padding:27px}.section-heading,.preview-top{display:flex;justify-content:space-between;align-items:flex-start}.number{color:#9aa795;font-size:9px}.section-heading h2,.preview-top h2{font-size:17px;letter-spacing:.04em;margin:8px 0 0}.heading-icon{color:#93a68e;font-size:20px}form{margin-top:29px}label{display:block;font-weight:700;font-size:12px}label span{color:#b0b7ad;font-size:9px;letter-spacing:.1em;margin-left:7px}input:not([type=range]):not([type=color]),select{width:100%;height:43px;background:#fafbf8;border:1px solid #e2e7df;border-radius:3px;padding:0 12px;margin:9px 0 21px;color:#384337;font:inherit;outline:none}input:focus,select:focus{border-color:#92aa8a!important}input::placeholder{color:#bdc4ba}.hint{font-size:10px;color:#9aa398;line-height:1.7;margin:-13px 0 21px}.hint a{display:block;color:#668a60}.submit{width:100%;border:0;border-radius:3px;background:#415e42;color:white;height:47px;padding:0 15px;display:flex;justify-content:space-between;align-items:center;font-weight:700;cursor:pointer}.submit:hover{background:#304d32}.submit:disabled{opacity:.6}.query-details{margin-top:24px;border-top:1px solid var(--line);padding-top:18px}.query-details summary{cursor:pointer;color:#415e42;font-weight:700;font-size:12px}.query-details p{color:#858b80;font-size:11px;line-height:1.7}.query-details pre{max-height:400px;overflow:auto;margin:12px 0 0;padding:16px;border-radius:3px;background:#f7f8f3;color:#384337;font-size:12px;line-height:1.6}.divider{height:1px;background:var(--line);margin:32px 0}.customize{margin-bottom:23px}.reset{background:none;border:0;color:#9aa598;font-size:10px;cursor:pointer}.control-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-top:1px solid #eff1ed}.control-label{font-weight:700;font-size:12px}.toggle-counts{border:1px solid #dce5d9;border-radius:3px;background:#f3f7f1;color:#415e42;padding:7px 12px;font:inherit;font-size:11px;cursor:pointer}.toggle-counts[aria-pressed='false']{background:#fafbf8;color:#858b80}.graph.hide-counts .cell-count{display:none}.cell-emoji{display:none;font-size:calc(var(--cell) * .8);line-height:1}.graph.show-emoji .cell-emoji{display:block}.control-row p{font-size:9px;color:#b6beb3;letter-spacing:.1em;margin:5px 0 0}.color-control{display:flex;align-items:center;gap:8px;color:#7e897d;font-size:10px}.color-control input{width:26px;height:26px;padding:0;border:0;background:none;cursor:pointer}.range-control{display:flex;align-items:center;gap:10px}.range-control input{width:90px;accent-color:#718e6c}.range-control output{width:34px;color:#818b7d;font-size:10px}.preview{padding:30px;min-width:0;display:flex;flex-direction:column}.preview-top h2{font-size:20px}.preview-top h2 span{color:#95ab8d;margin-left:8px}.preview-tag{border:1px solid #e5ebe1;color:#a0ad9b;padding:8px 10px;font-size:8px}.graph-card{border:1px solid #dfe4db;border-radius:5px;margin-top:35px;padding:23px;background:#fff}.graph-header{display:flex;justify-content:space-between;align-items:start}.graph-header strong{font-size:14px}.graph-header p{font-size:11px;color:#9da69b;margin:7px 0 0}.graph-header p a{color:#668a60;text-decoration:underline;text-underline-offset:2px}.github-mark{font-size:23px;color:#788b76}.graph-scroll{overflow-x:auto;padding:26px 0 10px}.graph{width:max-content;min-width:100%}.months{display:flex;margin-left:34px;height:20px;gap:var(--gap);color:#919b8e;font-size:10px}.months span{width:var(--cell);flex:none;overflow:visible}.grid{display:flex;gap:var(--gap)}.weekdays{width:31px;flex:none;display:grid;grid-template-rows:repeat(7,var(--cell));gap:var(--gap);font-size:9px;line-height:var(--cell);color:#9aa397}.week{display:grid;grid-template-rows:repeat(7,var(--cell));gap:var(--gap)}.cell,.blank,.legend i{width:var(--cell);height:var(--cell);border-radius:2px}.cell,.legend i{background:#ebedf0}.cell{display:flex;align-items:center;justify-content:center;overflow:hidden;color:#465345;font-size:calc(var(--cell) * var(--count-scale, .65));font-weight:700;line-height:1;letter-spacing:-.04em}.cell[data-level='3'],.cell[data-level='4']{color:#fff}.cell[data-level='1'],i[data-level='1']{background:var(--level-1, #9be9a8)}.cell[data-level='2'],i[data-level='2']{background:var(--level-2, #40c463)}.cell[data-level='3'],i[data-level='3']{background:var(--level-3, #30a14e)}.cell[data-level='4'],i[data-level='4']{background:var(--accent)}.graph.show-emoji .cell{background:transparent}.graph-footer{display:flex;justify-content:space-between;align-items:center;color:#a0aaa0;font-size:10px;margin-top:17px}.legend{display:flex;gap:4px;align-items:center}.legend i{width:10px;height:10px}.legend span:first-child{margin-right:4px}.legend span:last-child{margin-left:4px}.message{font-size:11px;color:#92a18e;margin:16px 0}.preview-bottom{margin-top:auto;display:flex;justify-content:space-between;color:#c2cbbf;padding-top:50px;font-size:9px}.preview-bottom b{color:#92aa89;font-size:15px;margin-left:8px}footer{border-top:1px solid #e2e6dc;padding:22px 6.2%;display:flex;justify-content:space-between;color:#aab5a6;font-size:9px}footer span:first-child{color:#7e9579}@media(max-width:1023px){.layout{grid-template-columns:minmax(0,1fr)}.sidebar,.preview{grid-column:auto;grid-row:auto}}@media(max-width:800px){.top-note,.intro-mark{display:none}.preview{min-height:390px}.intro{margin-bottom:32px}footer span:nth-child(2){display:none}}@media(max-width:480px){.topbar{height:64px}.controls,.preview{padding:20px}.preview-tag{display:none}.graph-card{padding:15px}.graph-footer{gap:10px;align-items:flex-start;flex-direction:column}footer{gap:10px;font-size:8px}.desktop{display:none}}
+  .text-button{display:inline-block;margin-top:6px;padding:5px 9px;border:1px solid #d5e1d2;border-radius:3px;background:#f3f7f1;color:#416e40;font:inherit;font-weight:700;cursor:pointer}.text-button:hover{background:#e7f0e4}.text-button:focus-visible{outline:2px solid #668a60;outline-offset:2px}
+  #token-info{width:min(520px,calc(100% - 2rem));max-height:calc(100% - 2rem);border:1px solid #e2e7df;border-radius:6px;padding:26px;color:var(--ink);font-family:inherit}
+  #token-info::backdrop{background:rgba(30,40,30,.5)}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .modal-header h2{margin:0;font-size:18px}
+  .modal-close{border:0;background:none;color:#667563;font-size:26px;line-height:1;cursor:pointer}
+  #token-info h3{margin:22px 0 6px;font-size:13px}
+  #token-info p{margin:0;color:#687365;font-size:13px;line-height:1.8}
+  .token-link{display:inline-block;margin-top:22px;color:#416e40;font-size:13px;font-weight:700}
+</style>
